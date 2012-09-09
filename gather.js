@@ -1,4 +1,9 @@
-var gather = templates = data = bindings = views = ctas = {};
+var gather = {}; 
+var templates = {}; 
+var data = {}; 
+var bindings = {};
+var views = {};
+
 
 var event_types = ['click','mousemove','mouseup','mouseout','mouseover','mousedown','dblclick','keyup','keydown','keypress','unload','scroll','resize','load','error','abort','blur','change','focus','reset','select','submit','unload']; 
 _.each(event_types, function (type) { bindings[type] = {}; }); gather.bind_all = function () {
