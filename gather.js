@@ -1,11 +1,10 @@
-var gather = {}; 
-var templates = {}; 
-var data = {}; 
+var gather = {};
+var templates = {};
+var data = {};
 var bindings = {};
 var views = {};
 
-
-var event_types = ['click','mousemove','mouseup','mouseout','mouseover','mousedown','dblclick','keyup','keydown','keypress','unload','scroll','resize','load','error','abort','blur','change','focus','reset','select','submit','unload']; 
+var event_types = ['models', 'click','mousemove','mouseup','mouseout','mouseover','mousedown','dblclick','keyup','keydown','keypress','unload','scroll','resize','load','error','abort','blur','change','focus','reset','select','submit','unload']; 
 _.each(event_types, function (type) { bindings[type] = {}; }); gather.bind_all = function () {
   _.each(bindings, function (events, type) {
     _.each(events, function (func, selector) {
@@ -19,6 +18,13 @@ gather.view = function (template, models, ctas) {
   views[template] = {};
   views[template]['ctas'] = ctas;
   views[template]['models'] = models;
+  _.each(models, function (model) {
+    if (bindings['models'][model] == undefined)
+      bindings['models'][model]=[];
+    if (bindings['models'][model].indexOf(template) == -1)
+      bindings['models'][model].push(template);
+    
+  });
 }
 
 gather.switch = function (view) {
@@ -33,14 +39,15 @@ gather.switch = function (view) {
   $("#"+view).css('display','block');
 }
   
-gather.views = function (set) {
+gather.views = function(set,models) {
+  if (models == undefined) models =['empty'];
   if(set == undefined)
     _.each(views, function (view, template){
       bindings['click'][view.ctas[0]] = function () { gather.switch(template); }
   });
   else
     _.each(set, function (template){
-      gather.view(template,['thing'],['.cta-'+template]);
+      gather.view(template,models,['.cta-'+template]);
       bindings['click']['.cta-'+template] = function () { gather.switch(template); }
     });
   
@@ -51,17 +58,22 @@ gather.model = function (model, obj) { data[model] = obj; }
 
 gather.set = function (model, property, value) { 
   data[model][property] = value; 
+  if (bindings['models'][model] != undefined){
+    _.each(bindings['models'][model], function (template){
+      if ($('#'+template).length > 0){
+        gather.apply(gather.template(template),data[model],'html',template); 
+      }
+    });
+  }
 } 
 
-gather.return = function(html){ return html; }
-  
-gather.write = function(html){ document.write(html); } gather.apply = function (template, model, func, args){
+gather.apply = function (template, model, func, args){
   gather[func](_.template(template, model), args);
   gather.bind_all();
 }
   
-gather.each = function (template, model, func, args){
-  _.each(model, function(obj) {
+gather.apply_many = function (template, many, func, args){
+  _.each(many, function(obj) {
     gather[func](_.template(template, obj), args);
     gather.bind_all();
   });
@@ -98,7 +110,17 @@ gather.template = function(name){
 }
   
 gather.save = function(thing){
-  $.post('https://ga.ther.co/token', thing, function(response,status){
-    console.log(thing);
-  });
+  settings = {
+    type:'POST',
+    url:'/token',
+    data:thing,
+    dataType:'json',
+    success: function(data, status, xhr){
+      console.log(thing);
+    },
+    async:0
+  };
+  ajax = $.ajax(settings);
 }
+  
+gather.model('empty');
